@@ -40,7 +40,7 @@ TRAIN_CITIES = [
     'PRS',
 ]
 
-
+# NOTE - 加载train和val数据集
 class GSVCitiesDataModule(pl.LightningDataModule):
     def __init__(self,
                  batch_size=32,
@@ -71,14 +71,14 @@ class GSVCitiesDataModule(pl.LightningDataModule):
         self.random_sample_from_each_place = random_sample_from_each_place
         self.val_set_names = val_set_names
         self.save_hyperparameters() # save hyperparameter with Pytorch Lightening
-
+        # NOTE - 训练前的图像变换
         self.train_transform = T.Compose([
             T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
-            T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),
+            T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),   # NOTE - 对图库进行增广（图像随机旋转、平移、颜色变换）
             T.ToTensor(),
             T.Normalize(mean=self.mean_dataset, std=self.std_dataset),
         ])
-
+        # NOTE - 验证前的图像变换
         self.valid_transform = T.Compose([
             T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
             T.ToTensor(),
@@ -93,19 +93,21 @@ class GSVCitiesDataModule(pl.LightningDataModule):
 
         self.valid_loader_config = {
             'batch_size': self.batch_size,
-            'num_workers': self.num_workers//2,
-            'drop_last': False,
-            'pin_memory': True,
-            'shuffle': False}
+            'num_workers': self.num_workers//2, # NOTE - 为什么除2
+            'drop_last': False, # NOTE - 这是什么参数？
+            'pin_memory': True, # NOTE - 这是什么参数？
+            'shuffle': False}   # NOTE - 验证集不打乱数据
 
     def setup(self, stage):
+        # Assign Train/val split(s) for use in Dataloaders
         if stage == 'fit':
             # load train dataloader with reload routine
-            self.reload()
+            self.reload()       # NOTE - reload在后面有定义
 
             # load validation sets (pitts_val, msls_val, ...etc)
-            self.val_datasets = []
+            self.val_datasets = []  # NOTE - 准备验证数据集集合，设定val_datasets
             for valid_set_name in self.val_set_names:
+                # NOTE - 用到dataset设定，这里将pitts30k的训练集和测试集全作为模型的验证集（用于泛化）
                 if valid_set_name.lower() == 'pitts30k_test':
                     self.val_datasets.append(PittsburgDataset.get_whole_test_set(
                         input_transform=self.valid_transform))
@@ -122,7 +124,7 @@ class GSVCitiesDataModule(pl.LightningDataModule):
             if self.show_data_stats:
                 self.print_stats()
 
-    def reload(self):
+    def reload(self):   # NOTE - reload定义：将train_dataset设为GSVCitiesDataset
         self.train_dataset = GSVCitiesDataset(
             cities=self.cities,
             img_per_place=self.img_per_place,
@@ -130,11 +132,11 @@ class GSVCitiesDataModule(pl.LightningDataModule):
             random_sample_from_each_place=self.random_sample_from_each_place,
             transform=self.train_transform)
 
-    def train_dataloader(self):
+    def train_dataloader(self): # NOTE - 加载训练数据集
         self.reload()
         return DataLoader(dataset=self.train_dataset, **self.train_loader_config)
 
-    def val_dataloader(self):
+    def val_dataloader(self):   # NOTE - 加载验证数据集
         val_dataloaders = []
         for val_dataset in self.val_datasets:
             val_dataloaders.append(DataLoader(

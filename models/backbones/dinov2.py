@@ -26,7 +26,7 @@ class DINOv2(nn.Module):
             norm_layer=False,
             return_token=False
         ):
-        super().__init__()
+        super().__init__()  # NOTE - 调用nn.Module的初始化方法
 
         assert model_name in DINOV2_ARCHS.keys(), f'Unknown model name {model_name}'
         self.model = torch.hub.load('facebookresearch/dinov2', model_name)
@@ -50,7 +50,7 @@ class DINOv2(nn.Module):
 
         B, C, H, W = x.shape
 
-        x = self.model.prepare_tokens_with_masks(x)
+        x = self.model.prepare_tokens_with_masks(x) # NOTE - 这里是不是调用父类的方法？或者是DINOv2自己的方法？
         
         # First blocks are frozen
         with torch.no_grad():

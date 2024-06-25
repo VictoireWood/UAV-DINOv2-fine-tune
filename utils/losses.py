@@ -16,7 +16,7 @@ def get_loss(loss_name):
                                                                             triplets_per_anchor="all",)
     raise NotImplementedError(f'Sorry, <{loss_name}> loss function is not implemented!')
 
-def get_miner(miner_name, margin=0.1):
+def get_miner(miner_name, margin=0.1):      # NOTE - 挖掘函数接受一批n个嵌入并返回k对/三元组用于计算损失: Mining functions take a batch of n embeddings and return k pairs/triplets to be used for calculating the loss:
     if miner_name == 'TripletMarginMiner' : return miners.TripletMarginMiner(margin=margin, type_of_triplets="semihard") # all, hard, semihard, easy
     if miner_name == 'MultiSimilarityMiner' : return miners.MultiSimilarityMiner(epsilon=margin, distance=CosineSimilarity())
     if miner_name == 'PairMarginMiner' : return miners.PairMarginMiner(pos_margin=0.7, neg_margin=0.3, distance=DotProductSimilarity())

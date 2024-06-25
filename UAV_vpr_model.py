@@ -24,7 +24,7 @@ class VPRModel(pl.LightningModule):
         #---- Aggregator
         agg_arch='ConvAP',                # NOTE - 原始
         agg_config={},
-        # agg_arch='SALAD',                 # NOTE = 邵星雨
+        # agg_arch='SALAD',                 # NOTE - 邵星雨
         # agg_config={},
         
         #---- Train hyperparameters
@@ -45,7 +45,6 @@ class VPRModel(pl.LightningModule):
         miner_margin=0.1,
         faiss_gpu=False
     ):
-        # NOTE - 函数输入到这里结束
         super().__init__() # NOTE - 调用父类pl.LightningModule的初始化函数，是pl常规定义方法中必须有的第一步
 
         # Backbone
@@ -73,7 +72,8 @@ class VPRModel(pl.LightningModule):
         
         self.loss_fn = utils.get_loss(loss_name)    # NOTE - 参考<https://kevinmusgrave.github.io/pytorch-metric-learning/losses/>
         self.miner = utils.get_miner(miner_name, miner_margin)  # NOTE - 参考<https://kevinmusgrave.github.io/pytorch-metric-learning/miners/>
-        self.batch_acc = [] # we will keep track of the % of trivial pairs/triplets at the loss level 
+        self.batch_acc = [] # we will keep track of the % of trivial pairs/triplets at the loss level
+        # NOTE - 没有理解这个跟踪是什么意思？ 
 
         self.faiss_gpu = faiss_gpu
         
@@ -84,14 +84,17 @@ class VPRModel(pl.LightningModule):
 
         # For validation in Lightning v2.0.0
         self.val_outputs = []
-        
+
+    # NOTE - VPR的前向传播，也就是网络从头到尾的输入到输出的过程
     # the forward pass of the lightning model
     def forward(self, x):
         x = self.backbone(x)
         x = self.aggregator(x)
         return x
-    
+
     # configure the optimizer 
+    # NOTE - 优化器主要用在模型训练阶段，用于更新模型中可学习的参数。
+    # 选择要在优化中使用的优化器和学习率调度器。通常你需要一个。但在gan或类似的情况下你可能有多个。使用多个优化器的优化仅在手动优化模式下有效。
     def configure_optimizers(self):
         if self.optimizer.lower() == 'sgd':
             optimizer = torch.optim.SGD(
@@ -129,9 +132,9 @@ class VPRModel(pl.LightningModule):
             )
 
         return [optimizer], [scheduler]
-    
-    # configure the optizer step, takes into account the warmup stage
-    def optimizer_step(self,  epoch, batch_idx, optimizer, optimizer_closure):
+
+# configure the optizer step, takes into account the warmup stage
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
         # warm up lr
         optimizer.step(closure=optimizer_closure)   # NOTE - 执行单个优化步骤(参数更新)。Performs a single optimization step (parameter update).
         self.lr_schedulers().step()                 # NOTE - 参考<https://lightning.ai/docs/pytorch/stable/common/optimization.html>
@@ -147,7 +150,7 @@ class VPRModel(pl.LightningModule):
             # which do not contribute in the loss value
             nb_samples = descriptors.shape[0]
             nb_mined = len(set(miner_outputs[0].detach().cpu().numpy()))
-            batch_acc = 1.0 - (nb_mined/nb_samples)
+            batch_acc = 1.0 - (nb_mined/nb_samples) # NOTE - 这里不太理解
 
         else: # no online mining
             loss = self.loss_fn(descriptors, labels)
@@ -187,74 +190,53 @@ class VPRModel(pl.LightningModule):
 
         loss = self.loss_function(descriptors, labels) # Call the loss_function we defined above
         
+        # NOTE -logs metrics for each training_step,
+        # and the average across the epoch, to the progress bar and logger
         self.log('loss', loss.item(), logger=True, prog_bar=True)
-        return {'loss': loss}
-    
+        return {'loss': loss}   # NOTE - training_step函数必须返回loss
+
     def on_train_epoch_end(self):
         # we empty the batch_acc list for next epoch
         self.batch_acc = []
 
     # For validation, we will also iterate step by step over the validation set
     # this is the way Pytorch Lghtning is made. All about modularity, folks.
-    def validation_step(self, batch, batch_idx, dataloader_idx=None):
-        places, _ = batch
-        descriptors = self(places)
-        self.val_outputs[dataloader_idx].append(descriptors.detach().cpu())     # NOTE - 这里的dataloader好像是用来加载数据集的
-        return descriptors.detach().cpu()
-        # NOTE - 官方文档说validation_step返回值中必须有loss tensor，不清楚为什么这个descriptor是loss。
-    
-    # NOTE - Called in the validation loop at the very beginning of the epoch.
-    def on_validation_epoch_start(self):
-        # reset the outputs list
-        self.val_outputs = [[] for _ in range(len(self.trainer.datamodule.val_datasets))]
-    
-    def on_validation_epoch_end(self):
-        """this return descriptors in their order
-        depending on how the validation dataset is implemented 
-        for this project (MSLS val, Pittburg val), it is always references then queries
-        [R1, R2, ..., Rn, Q1, Q2, ...]
-        """
-        val_step_outputs = self.val_outputs
+    # NOTE - 对验证集中的单个批数据进行操作。在这一步中，您可能会生成示例或计算任何感兴趣的内容，例如准确性。
+    def validation_step(self, batch, batch_idx):
+        # SECTION - 原始
+        # NOTE - 官方文档示范：input, target = batch
+        # places, _ = batch
+        # descriptors = self(places)
+        # self.val_outputs[dataloader_idx].append(descriptors.detach().cpu())     # NOTE - 这里的dataloader好像是用来加载数据集的
+        # return descriptors.detach().cpu()
+        # !SECTION
 
-        dm = self.trainer.datamodule
-        # The following line is a hack: if we have only one validation set, then
-        # we need to put the outputs in a list (Pytorch Lightning does not do it presently)
-        if len(dm.val_datasets)==1: # we need to put the outputs in a list
-            val_step_outputs = [val_step_outputs]
+        # NOTE - 这里由于我在加载val数据集的时候使用了和train数据集一样的结构和加载方式，这里也需要仿照training_step写
+        places, labels = batch
+        # Note that GSVCities yields places (each containing N images)
+        # which means the dataloader will return a batch containing BS places
+        BS, N, ch, h, w = places.shape      # NOTE  - 这里需要看一下这个数据是怎么加载的？
         
-        # NOTE - 这里需要改
-        for i, (val_set_name, val_dataset) in enumerate(zip(dm.val_set_names, dm.val_datasets)):
-            feats = torch.concat(val_step_outputs[i], dim=0)
-            
-            if 'pitts' in val_set_name:
-                # split to ref and queries
-                num_references = val_dataset.dbStruct.numDb
-                positives = val_dataset.getPositives()
-            elif 'msls' in val_set_name:
-                # split to ref and queries
-                num_references = val_dataset.num_references
-                positives = val_dataset.pIdx
-            else:
-                print(f'Please implement validation_epoch_end for {val_set_name}')
-                raise NotImplemented
+        # reshape places and labels
+        images = places.view(BS*N, ch, h, w)
+        labels = labels.view(-1)
 
-            r_list = feats[ : num_references]
-            q_list = feats[num_references : ]
-            pitts_dict = utils.get_validation_recalls(
-                r_list=r_list, 
-                q_list=q_list,
-                k_values=[1, 5, 10, 15, 20, 50, 100],
-                gt=positives,
-                print_results=True,
-                dataset_name=val_set_name,
-                faiss_gpu=self.faiss_gpu
-            )
-            del r_list, q_list, feats, num_references, positives
+        # Feed forward the batch to the model
+        descriptors = self(images) # Here we are calling the method forward that we defined above
+        
+        if torch.isnan(descriptors).any():
+            raise ValueError('NaNs in descriptors')
 
-            self.log(f'{val_set_name}/R1', pitts_dict[1], prog_bar=False, logger=True)
-            self.log(f'{val_set_name}/R5', pitts_dict[5], prog_bar=False, logger=True)
-            self.log(f'{val_set_name}/R10', pitts_dict[10], prog_bar=False, logger=True)
-        print('\n\n')
+        loss = self.loss_function(descriptors, labels) # Call the loss_function we defined above
+        
+        self.log('loss', loss.item(), logger=True, prog_bar=True)
+        return {'loss': loss}
 
-        # reset the outputs list
-        self.val_outputs = []
+    def on_validation_epoch_end(self):
+        # we empty the batch_acc list for next epoch
+        self.batch_acc = []
+    
+    # FIXME - 原始程序没看懂，这里是怎么召回的
+
+
+        
