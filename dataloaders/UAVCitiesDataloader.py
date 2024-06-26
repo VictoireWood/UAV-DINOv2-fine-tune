@@ -78,7 +78,7 @@ class UAVCitiesDataModule(pl.LightningDataModule):
         if stage == "fit":
             # load train dataloader with reload routine
             self.reload_train()       # NOTE - reload在后面有定义
-            self.reload_val()           
+            self.reload_val()    # 把两个城市合并成一个val_dataset
 
             if self.show_data_stats:
                 self.print_stats()

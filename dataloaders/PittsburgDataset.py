@@ -85,6 +85,11 @@ def parse_dbStruct(path):
     return dbStruct(whichSet, dataset, dbImage, utmDb, qImage,
                     utmQ, numDb, numQ, posDistThr,
                     posDistSqThr, nonTrivPosDistSqThr)
+# NOTE - <https://github.com/Nanne/pytorch-NetVlad/issues/26>
+# utm is the Universal Transverse Mercator coordinate system, i.e., it tells you where in Tokyo the images are taken.
+# PosDisThr is the positive distance threshold, Sq is the squared version on that, 
+# and nonTrivPosDisSqThr is the non trivial positive distance threshold. 
+# These thresholds are in meters and are the various distances used to determine which images are positives or potential positives.
 
 
 class WholeDatasetFromStruct(data.Dataset):
@@ -125,10 +130,13 @@ class WholeDatasetFromStruct(data.Dataset):
         # positives for evaluation are those within trivial threshold range
         # fit NN to find them, search by radius
         if self.positives is None:
-            knn = NearestNeighbors(n_jobs=-1)
+            # NOTE - 最近邻检索<https://blog.csdn.net/lovego123/article/details/67638789>
+            knn = NearestNeighbors(n_jobs=-1)   # NOTE - 近邻搜索的并行度，默认为None，表示1；-1表示使用所有cpu
             knn.fit(self.dbStruct.utmDb)
 
             self.distances, self.positives = knn.radius_neighbors(self.dbStruct.utmQ,
                                                                   radius=self.dbStruct.posDistThr)
+            # NOTE - 找到Database的照片的各个拍摄位置的最近的Query的拍摄点位和距离
+            # 返回最近Query到Database各个照片拍摄位置的距离和点位索引
 
         return self.positives

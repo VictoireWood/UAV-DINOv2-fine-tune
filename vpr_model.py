@@ -83,7 +83,7 @@ class VPRModel(pl.LightningModule):
         self.aggregator = helper.get_aggregator(agg_arch, agg_config)       # NOTE - 获取聚类方法（聚合层）
 
         # For validation in Lightning v2.0.0
-        self.val_outputs = []
+        self.val_outputs = []   # NOTE - VPR模型的验证输出，一个列表，存储每个验证集的输出结果
         
     # the forward pass of the lightning model
     def forward(self, x):
@@ -199,14 +199,18 @@ class VPRModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx, dataloader_idx=None):
         places, _ = batch
         descriptors = self(places)
-        self.val_outputs[dataloader_idx].append(descriptors.detach().cpu())     # NOTE - 这里的dataloader好像是用来加载数据集的
+        self.val_outputs[dataloader_idx].append(descriptors.detach().cpu())     # NOTE - 这里的dataloader好像是用来加载数据集的，将每个验证集的结果放在val_outputs列表中
         return descriptors.detach().cpu()
         # NOTE - 官方文档说validation_step返回值中必须有loss tensor，不清楚为什么这个descriptor是loss。
     
     # NOTE - Called in the validation loop at the very beginning of the epoch.
     def on_validation_epoch_start(self):
         # reset the outputs list
-        self.val_outputs = [[] for _ in range(len(self.trainer.datamodule.val_datasets))]
+        # 形成空列表的列表，空列表个数和val_datasets长度相同，相当于初始化val_outputs
+        self.val_outputs = [[] for _ in range(len(self.trainer.datamodule.val_datasets))]   # NOTE - 对应GSVCitiesDataModule.setup中的val_datasets
+        # The line self.val_outputs = [[] for _ in range(len(self.trainer.datamodule.val_datasets))] is creating a list of empty lists. The length of the list is determined by the number of validation datasets (self.trainer.datamodule.val_datasets).
+        # NOTE - self.trainer会调用Trainer，<https://lightning.ai/docs/pytorch/stable/common/trainer.html>
+        # <https://adaning.github.io/posts/34610.html>在pl.LightningModule里会添加Trainer的Hook, 调用self.trainer就能够获得它身上的属性
     
     def on_validation_epoch_end(self):
         """this return descriptors in their order
@@ -217,6 +221,8 @@ class VPRModel(pl.LightningModule):
         val_step_outputs = self.val_outputs
 
         dm = self.trainer.datamodule
+        # NOTE - Trainer.fit()参数datamodule是LightningDataModule的实例<https://blog.csdn.net/qq_27135095/article/details/122654805>
+        # 根据main.py，dm是GSVCitiesDataModule的实例
         # The following line is a hack: if we have only one validation set, then
         # we need to put the outputs in a list (Pytorch Lightning does not do it presently)
         if len(dm.val_datasets)==1: # we need to put the outputs in a list
@@ -224,12 +230,14 @@ class VPRModel(pl.LightningModule):
         
         # NOTE - 这里需要改
         for i, (val_set_name, val_dataset) in enumerate(zip(dm.val_set_names, dm.val_datasets)):
+            # i是各个(val_set_name, val_dataset)的索引（从0开始）
+            # 默认是['pitts30k_val', 'msls_val']这两个val_dataset
             feats = torch.concat(val_step_outputs[i], dim=0)
             
             if 'pitts' in val_set_name:
                 # split to ref and queries
-                num_references = val_dataset.dbStruct.numDb
-                positives = val_dataset.getPositives()
+                num_references = val_dataset.dbStruct.numDb # Pittsburgh数据集database的图片数量(相对的，numQ是query的数量)
+                positives = val_dataset.getPositives()  # 按拍摄点位最近邻搜索找到Query中的正样本
             elif 'msls' in val_set_name:
                 # split to ref and queries
                 num_references = val_dataset.num_references

@@ -80,4 +80,4 @@ if __name__ == '__main__':
     )
 
     # we call the trainer, we give it the model and the datamodule
-    trainer.fit(model=model, datamodule=datamodule)
+    trainer.fit(model=model, datamodule=datamodule)     # NOTE - 这里是VPRmodel里的self.trainer.datamodule的来源
