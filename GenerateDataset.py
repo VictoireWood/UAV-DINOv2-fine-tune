@@ -208,7 +208,7 @@ def generate_train_dataset(train_set_generate = False):
     # NOTE - 分开两部分train和val，需要给各个城市的每张图设置一个特有的id，将数据记入csv
     
     cities_path = glob(map_database_path)
-    header = pd.DataFrame(columns=['place_id', 'city_id', 'map_idx', 'lon', 'lat', 'lon_LT', 'lat_LT', 'lon_RB', 'lat_RB'])
+    header = pd.DataFrame(columns=['place_id', 'city_id', 'map_idx', 'origin_img', 'lon', 'lat', 'lon_LT', 'lat_LT', 'lon_RB', 'lat_RB'])
 
     for city_path in cities_path:
         city_id = city_path.split('\\')[-1]
@@ -293,14 +293,14 @@ def generate_train_dataset(train_set_generate = False):
                 lat_RB = ((loc_y + img_h) * lat_res + lat_s)
                 lon = ((loc_x + img_w / 2) * lon_res + lon_w)
                 lat = ((loc_y + img_h / 2) * lat_res + lat_s)
-                data_line = pd.DataFrame([[place_id, city_id, map_idx, lon, lat, lon_LT, lat_LT, lon_RB, lat_RB]], columns=['place_id', 'city_id', 'map_idx','lon', 'lat', 'lon_LT', 'lat_LT', 'lon_RB', 'lat_RB'])
+                origin_img = map_list[map_idx].split('\\')[-1].replace('.png', '')
+                data_line = pd.DataFrame([[place_id, city_id, map_idx, origin_img, lon, lat, lon_LT, lat_LT, lon_RB, lat_RB]], columns=['place_id', 'city_id', 'map_idx', 'origin_img', 'lon', 'lat', 'lon_LT', 'lat_LT', 'lon_RB', 'lat_RB'])
                 data_line.to_csv(csv_dataframe, mode='a', index=False, header=False)
                 if row_idx == 0:
                     col_idx = TRAIN_CITIES.index(city_id)
                 # else:
                 #     col_idx = VAL_CITIES.index(city_id)
-                origin_img = map_list[map_idx].split('\\')[-1].replace('.png', '')
-                cv2.imwrite(IMG_PATH[row_idx][col_idx] +f'\\@{city_id}@{str(place_id).zfill(4)}@{str(map_idx)}@{origin_img}@{str(lon)}@{str(lat)}@.png')
+                cv2.imwrite(IMG_PATH[row_idx][col_idx] +f'\\@{city_id}@{str(place_id).zfill(4)}@{str(map_idx)}@{origin_img}@{str(lon)}@{str(lat)}@.png', map_resize)
                 # tmp = pd.read_csv(csv_dataframe)
                 # print(tmp.iloc[-1])
 
@@ -544,5 +544,5 @@ def generate_validate_dataset(val_set_generate = False):
 
 if __name__ == '__main__':
     generate_train_dataset(train_set_generate=True)
-    generate_validate_dataset(val_set_generate=True)
+    generate_validate_dataset(val_set_generate=False)
     pass
