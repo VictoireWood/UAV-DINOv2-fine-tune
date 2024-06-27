@@ -249,10 +249,10 @@ class VPRModel(pl.LightningModule):
             r_list = feats[ : num_references]
             q_list = feats[num_references : ]
             pitts_dict = utils.get_validation_recalls(
-                r_list=r_list, 
-                q_list=q_list,
-                k_values=[1, 5, 10, 15, 20, 50, 100],
-                gt=positives,
+                r_list=r_list,  # reference也就是database列表
+                q_list=q_list,  # query列表
+                k_values=[1, 5, 10, 15, 20, 50, 100],   # 召回多少个结果
+                gt=positives,           # 真值（也就是根据最近邻搜索得到的正样本）
                 print_results=True,
                 dataset_name=val_set_name,
                 faiss_gpu=self.faiss_gpu

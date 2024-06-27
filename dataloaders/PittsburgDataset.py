@@ -69,18 +69,18 @@ def parse_dbStruct(path):
 
     whichSet = matStruct[0].item()
 
-    dbImage = [f[0].item() for f in matStruct[1]]
-    utmDb = matStruct[2].T
+    dbImage = [f[0].item() for f in matStruct[1]]   # 是database图片路径的列表
+    utmDb = matStruct[2].T  # 一一对应的utm坐标
 
     qImage = [f[0].item() for f in matStruct[3]]
     utmQ = matStruct[4].T
 
-    numDb = matStruct[5].item()
-    numQ = matStruct[6].item()
+    numDb = matStruct[5].item()     # 10000张db
+    numQ = matStruct[6].item()      # 7608张query
 
-    posDistThr = matStruct[7].item()
-    posDistSqThr = matStruct[8].item()
-    nonTrivPosDistSqThr = matStruct[9].item()
+    posDistThr = matStruct[7].item()    # 是25
+    posDistSqThr = matStruct[8].item()  # 是625
+    nonTrivPosDistSqThr = matStruct[9].item()   # 是100
 
     return dbStruct(whichSet, dataset, dbImage, utmDb, qImage,
                     utmQ, numDb, numQ, posDistThr,
