@@ -18,13 +18,13 @@ class VPRModel(pl.LightningModule):
         #---- Backbone
         backbone_arch='resnet50',         # NOTE - 原始
         backbone_config={},
-        # backbone_arch='dinov2_vitb14',    # NOTE = 邵星雨
+        # backbone_arch='dinov2_vitb14',    # NOTE - 邵星雨
         # backbone_config={},
         
         #---- Aggregator
         agg_arch='ConvAP',                # NOTE - 原始
         agg_config={},
-        # agg_arch='SALAD',                 # NOTE = 邵星雨
+        # agg_arch='SALAD',                 # NOTE - 邵星雨
         # agg_config={},
         
         #---- Train hyperparameters
@@ -202,6 +202,8 @@ class VPRModel(pl.LightningModule):
         self.val_outputs[dataloader_idx].append(descriptors.detach().cpu())     # NOTE - 这里的dataloader好像是用来加载数据集的，将每个验证集的结果放在val_outputs列表中
         return descriptors.detach().cpu()
         # NOTE - 官方文档说validation_step返回值中必须有loss tensor，不清楚为什么这个descriptor是loss。
+        # NOTE - validation step的返回值应该取决于最后在main.py中调用ModelCheckpoint的时候，以什么为标准作为保存模型的依据。
+        # 在这里是依据验证集的第一个结果的召回率R@1为依据，选结果排在前三的模型保存下来。
     
     # NOTE - Called in the validation loop at the very beginning of the epoch.
     def on_validation_epoch_start(self):

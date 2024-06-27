@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 
 from vpr_model import VPRModel
 from dataloaders.UAVCitiesDataloader import UAVCitiesDataModule
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 if __name__ == '__main__':        
     datamodule = UAVCitiesDataModule(
@@ -51,15 +52,29 @@ if __name__ == '__main__':
 
     # model params saving using Pytorch Lightning
     # we save the best 3 models accoring to Recall@1 on pittsburg val
-    checkpoint_cb = pl.callbacks.ModelCheckpoint(
+    checkpoint_cb = ModelCheckpoint(
         monitor='CITY_7/R1',
-        filename=f'{model.encoder_arch}' + '_({epoch:02d})_R1[{CITY_7/R1:.4f}]_R5[{CITY_7/R5:.4f}]',
+        dirpath='./models/checkpoints/',
+        filename=f'{model.encoder_arch}' + '_({epoch:02d})_R1[{CITY_7/R1:.4f}]_R2[{CITY_7/R2:.4f}]',    # model.encoder_arch = 'dinov2_vitb14'
         auto_insert_metric_name=False,
         save_weights_only=True,
         save_top_k=3,
         save_last=True,
         mode='max'
     )
+    # NOTE - 参考<https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.ModelCheckpoint.html>
+
+    checkpoint_cb = ModelCheckpoint(
+        monitor='Average_R@1',
+        dirpath='./models/checkpoints/',
+        filename=f'{model.encoder_arch}' + '_({epoch:02d})_R1[{Average_R@1:.4f}]_R2[{Average_R@2:.4f}]',    # model.encoder_arch = 'dinov2_vitb14'
+        auto_insert_metric_name=False,
+        save_weights_only=True,
+        save_top_k=3,
+        save_last=True,
+        mode='max'
+    )
+
 
     #------------------
     # we instanciate a trainer

@@ -237,6 +237,9 @@ class VPRModel(pl.LightningModule):
         if len(dm.val_datasets) == 1:
             val_step_outputs = [val_step_outputs]
         
+        # recalls_rate = []
+        recall_1st_rate = 0
+
         for i, (val_set_name, val_dataset) in enumerate(zip(dm.val_set_names, dm.val_datasets)):
             feats = torch.concat(val_step_outputs[i], dim=0)
             # 对应train cities
@@ -256,9 +259,19 @@ class VPRModel(pl.LightningModule):
             )
             del db_list, q_list, feats, num_references, positives
 
-            self.log(f'{val_set_name}/R1', recalls_dict[1], prog_bar=False, logger=True)
+            self.log(f'{val_set_name}/R1', recalls_dict[1], prog_bar=False, logger=True)    # 这里的命名对应main.py中的ModelCheckpoint的monitor
             self.log(f'{val_set_name}/R2', recalls_dict[2], prog_bar=False, logger=True)
+            # NOTE - 参考<https://lightning.ai/docs/pytorch/latest/extensions/logging.html#automatic-logging>
+
+            # recalls_rate.append(recalls_dict[1], recalls_dict[2])
+            recall_1st_rate += recalls_dict[1]
+
         print('\n\n')
+
+        # 我甚至可以给所有val_dataset的R@1召回率求个平均
+        ave_recall_1st_rate = recall_1st_rate / len(dm.val_datasets)
+        self.log('Average_R@1', ave_recall_1st_rate, prog_bar=False, logger=True)
+
 
         # reset the outputs list
         self.val_outputs = []
