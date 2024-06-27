@@ -543,5 +543,6 @@ def generate_validate_dataset(val_set_generate = False):
                 # print(tmp.iloc[-1])
 
 if __name__ == '__main__':
+    generate_train_dataset(train_set_generate=True)
     generate_validate_dataset(val_set_generate=True)
     pass
