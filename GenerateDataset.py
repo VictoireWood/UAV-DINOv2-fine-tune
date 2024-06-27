@@ -327,6 +327,7 @@ def generate_validate_dataset(val_set_generate = False):
     dbImage = []
     qImage = []
     PosImageGT = []
+    PosImageGT_idx = []
     numDb = 0
     numQ = 0
     # NOTE - (whichSet, dataset(这个就用城市名代替), dbImage(图片路径), utmDb, qImage,
@@ -527,9 +528,11 @@ def generate_validate_dataset(val_set_generate = False):
                 dist_info = zip(qPosTmp, dist_pix_list)
                 dist_info = sorted(dist_info, key=lambda x: x[1])
                 PosImageGT_line = [dist_info[i][0] for i in range(len(dist_info))]
+                gt_idx = [qImage.index(dist_info[i][0]) for i in range(len(dist_info))]
                 PosImageGT.append(PosImageGT_line)
+                PosImageGT_idx.append(gt_idx)
 
-        json_dict = {'dataset': dataset, 'dataset_root': VAL_ROOT,'numDb': numDb, 'numQ': numQ, 'dbImage': dbImage, 'qImage': qImage, 'PosImageGT': PosImageGT}
+        json_dict = {'dataset': dataset, 'dataset_root': VAL_ROOT, 'numDb': numDb, 'numQ': numQ, 'dbImage': dbImage, 'qImage': qImage, 'PosImageGT': PosImageGT, 'PosImageGT_idx': PosImageGT_idx}
         
         json_str = json.dumps(json_dict)
         json_save_path = VAL_DATASET_ROOT + '\\info.json'
@@ -540,5 +543,5 @@ def generate_validate_dataset(val_set_generate = False):
                 # print(tmp.iloc[-1])
 
 if __name__ == '__main__':
-    generate_validate_dataset()
+    generate_validate_dataset(val_set_generate=True)
     pass

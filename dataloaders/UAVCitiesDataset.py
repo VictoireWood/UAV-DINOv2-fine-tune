@@ -34,7 +34,7 @@ if not Path(BASE_PATH).exists():
 class UAVCitiesDataset(Dataset):
     def __init__(self,
                 #  cities=TRAIN_CITIES,
-                 is_val=False,
+                #  is_val=False,
                  img_per_place=4,
                  min_img_per_place=4,
                  random_sample_from_each_place=True,
@@ -42,12 +42,14 @@ class UAVCitiesDataset(Dataset):
                  base_path=BASE_PATH
                  ):
         super(UAVCitiesDataset, self).__init__()
-        if is_val == False:
-            self.base_path = base_path + r'\train'
-            self.cities = TRAIN_CITIES
-        else:
-            self.base_path = base_path + r'\val'
-            self.cities = VAL_CITIES
+        self.base_path = base_path + r'\train'
+        self.cities = TRAIN_CITIES
+        # if is_val == False:
+        #     self.base_path = base_path + r'\train'
+        #     self.cities = TRAIN_CITIES
+        # else:
+        #     self.base_path = base_path + r'\val'
+        #     self.cities = VAL_CITIES
 
         assert img_per_place <= min_img_per_place, \
             f"img_per_place should be less than {min_img_per_place}"

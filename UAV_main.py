@@ -10,7 +10,6 @@ if __name__ == '__main__':
         min_img_per_place=4,
         shuffle_all=False, # shuffle all images or keep shuffling in-city only
         random_sample_from_each_place=True,
-        image_size=(224, 224),
         num_workers=10,
         show_data_stats=True
     )
@@ -53,8 +52,8 @@ if __name__ == '__main__':
     # model params saving using Pytorch Lightning
     # we save the best 3 models accoring to Recall@1 on pittsburg val
     checkpoint_cb = pl.callbacks.ModelCheckpoint(
-        monitor='pitts30k_val/R1',
-        filename=f'{model.encoder_arch}' + '_({epoch:02d})_R1[{pitts30k_val/R1:.4f}]_R5[{pitts30k_val/R5:.4f}]',
+        monitor='CITY_7/R1',
+        filename=f'{model.encoder_arch}' + '_({epoch:02d})_R1[{CITY_7/R1:.4f}]_R5[{CITY_7/R5:.4f}]',
         auto_insert_metric_name=False,
         save_weights_only=True,
         save_top_k=3,

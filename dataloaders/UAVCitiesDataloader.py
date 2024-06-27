@@ -5,6 +5,7 @@ from torchvision import transforms as T
 
 from dataloaders.UAVCitiesDataset import UAVCitiesDataset
 from GenerateDataset import CITIES,TRAIN_CITIES, VAL_CITIES
+from . import UAVCitiesValDataset
 
 from prettytable import PrettyTable
 
@@ -42,6 +43,7 @@ class UAVCitiesDataModule(pl.LightningDataModule):
         self.mean_dataset = mean_std['mean']
         self.std_dataset = mean_std['std']
         self.random_sample_from_each_place = random_sample_from_each_place
+        self.val_set_names = VAL_CITIES
         self.save_hyperparameters() # save hyperparameter with Pytorch Lightening
 
         # NOTE - 训练前的图像变换
@@ -77,28 +79,29 @@ class UAVCitiesDataModule(pl.LightningDataModule):
         # Assign train/val datasets for use in dataloaders
         if stage == "fit":
             # load train dataloader with reload routine
-            self.reload_train()       # NOTE - reload在后面有定义
-            self.reload_val()    # 把两个城市合并成一个val_dataset
+            self.reload()       # NOTE - reload在后面有定义
+
+            self.val_datasets = []
+            for val_set_name in self.val_set_names:
+                self.val_datasets.append(UAVCitiesValDataset.get_whole_dataset(dataset_name=val_set_name, input_transform=self.valid_transform))
 
             if self.show_data_stats:
                 self.print_stats()
-    def reload_train(self):
+    def reload(self):
         self.train_dataset = UAVCitiesDataset(
                 is_val=False,
                 transform=self.train_transform
         )
-    def reload_val(self):
-        self.val_dataset = UAVCitiesDataset(
-                is_val=True,
-                transform=self.valid_transform
-        )
+
     def train_dataloader(self):
-        self.reload_train()
+        self.reload()
         return DataLoader(self.train_dataset, **self.train_loader_config)
     
     def val_dataloader(self):
-        self.reload_val()
-        return DataLoader(self.val_dataset, **self.valid_loader_config)
+        val_dataloaders = []
+        for val_dataset in self.val_datasets:
+            val_dataloaders.append(DataLoader(dataset=val_dataset, **self.valid_loader_config))
+        return val_dataloaders
 
     def print_stats(self):
         print()
@@ -118,9 +121,8 @@ class UAVCitiesDataModule(pl.LightningDataModule):
         table.align['Data'] = "l"
         table.align['Value'] = "l"
         table.header = False
-        table.add_row(["# of cities", f"{len(VAL_CITIES)}"])
-        table.add_row(["# of places", f'{self.val_dataset.__len__()}'])
-        table.add_row(["# of images", f'{self.val_dataset.total_nb_images}'])
+        for i, val_set_name in enumerate(self.val_set_names):
+            table.add_row([f"Validation set {i+1}", f"{val_set_name}"])
         print(table.get_string(title="Validation Datasets"))
         print()
 

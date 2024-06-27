@@ -221,7 +221,7 @@ class VPRModel(pl.LightningModule):
         val_step_outputs = self.val_outputs
 
         dm = self.trainer.datamodule
-        # NOTE - Trainer.fit()参数datamodule是LightningDataModule的实例<https://blog.csdn.net/qq_27135095/article/details/122654805>
+        # NOTE - Trainer.fit()参数datamodule是LightningDataModule(在dataloader文件里定义的)的实例<https://blog.csdn.net/qq_27135095/article/details/122654805>
         # 根据main.py，dm是GSVCitiesDataModule的实例
         # The following line is a hack: if we have only one validation set, then
         # we need to put the outputs in a list (Pytorch Lightning does not do it presently)

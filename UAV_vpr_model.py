@@ -5,6 +5,8 @@ from torch.optim import lr_scheduler, optimizer
 import utils
 from models import helper
 
+from GenerateDataset import CITIES, TRAIN_CITIES, VAL_CITIES
+
 
 class VPRModel(pl.LightningModule):
     """This is the main model for Visual Place Recognition
@@ -202,7 +204,7 @@ class VPRModel(pl.LightningModule):
     # For validation, we will also iterate step by step over the validation set
     # this is the way Pytorch Lghtning is made. All about modularity, folks.
     # NOTE - 对验证集中的单个批数据进行操作。在这一步中，您可能会生成示例或计算任何感兴趣的内容，例如准确性。
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx, dataloader_idx=None):
         # SECTION - 原始
         # NOTE - 官方文档示范：input, target = batch
         # places, _ = batch
@@ -212,30 +214,55 @@ class VPRModel(pl.LightningModule):
         # !SECTION
 
         # NOTE - 这里由于我在加载val数据集的时候使用了和train数据集一样的结构和加载方式，这里也需要仿照training_step写
-        places, labels = batch
+        places, _ = batch
         # Note that GSVCities yields places (each containing N images)
         # which means the dataloader will return a batch containing BS places
-        BS, N, ch, h, w = places.shape      # NOTE  - 这里需要看一下这个数据是怎么加载的？
         
-        # reshape places and labels
-        images = places.view(BS*N, ch, h, w)
-        labels = labels.view(-1)
+        descriptors = self(places)
+        self.val_outputs[dataloader_idx].append(descriptors.detach().cpu())     # NOTE - 这里的dataloader好像是用来加载数据集的，将每个验证集的结果放在val_outputs列表中
+        return descriptors.detach().cpu()
 
         # Feed forward the batch to the model
-        descriptors = self(images) # Here we are calling the method forward that we defined above
-        
-        if torch.isnan(descriptors).any():
-            raise ValueError('NaNs in descriptors')
-
-        loss = self.loss_function(descriptors, labels) # Call the loss_function we defined above
-        
-        self.log('loss', loss.item(), logger=True, prog_bar=True)
-        return {'loss': loss}
+    def on_validation_epoch_start(self):
+        # reset the outputs list
+        # 形成空列表的列表，空列表个数和val_datasets长度相同，相当于初始化val_outputs
+        self.val_outputs = [[] for _ in range(len(self.trainer.datamodule.val_datasets))]   # NOTE - 对应GSVCitiesDataModule.setup中的val_datasets
 
     def on_validation_epoch_end(self):
         # we empty the batch_acc list for next epoch
-        self.batch_acc = []
-    
+        val_step_outputs = self.val_outputs
+        dm = self.trainer.datamodule
+        # NOTE - Trainer.fit()参数datamodule是LightningDataModule(在dataloader文件里定义的)的实例<https://blog.csdn.net/qq_27135095/article/details/122654805>
+        # 根据main.py，dm是GSVCitiesDataModule的实例
+        if len(dm.val_datasets) == 1:
+            val_step_outputs = [val_step_outputs]
+        
+        for i, (val_set_name, val_dataset) in enumerate(zip(dm.val_set_names, dm.val_datasets)):
+            feats = torch.concat(val_step_outputs[i], dim=0)
+            # 对应train cities
+            num_references = val_dataset.dataset_info.numDb
+            positives = val_dataset.getPositives()
+        
+            db_list = feats[ : num_references]
+            q_list = feats[num_references : ]
+            recalls_dict = utils.get_validation_recalls(
+                r_list=db_list,     # reference也就是database列表
+                q_list=q_list,      # query列表
+                k_values=[1, 2],    # 召回多少个结果
+                gt=positives,           # 真值（也就是根据最近邻搜索得到的正样本）
+                print_results=True,
+                dataset_name=val_set_name,
+                faiss_gpu=self.faiss_gpu
+            )
+            del db_list, q_list, feats, num_references, positives
+
+            self.log(f'{val_set_name}/R1', recalls_dict[1], prog_bar=False, logger=True)
+            self.log(f'{val_set_name}/R2', recalls_dict[2], prog_bar=False, logger=True)
+        print('\n\n')
+
+        # reset the outputs list
+        self.val_outputs = []
+
     # FIXME - 原始程序没看懂，这里是怎么召回的
 
 
