@@ -87,7 +87,7 @@ class VPRModel(pl.LightningModule):
         
     # the forward pass of the lightning model
     def forward(self, x):
-        x = self.backbone(x)
+        x = self.backbone(x)    # 这里得到的是feature map，后面SALAD是NetVLAD层的聚类，不知道单应性矩阵的聚类过程应该怎么写？
         x = self.aggregator(x)
         return x
     

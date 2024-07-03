@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
 
-from vpr_model import VPRModel
+from UAV_vpr_model import VPRModel
 from dataloaders.UAVCitiesDataloader import UAVCitiesDataModule
 from lightning.pytorch.callbacks import ModelCheckpoint
 

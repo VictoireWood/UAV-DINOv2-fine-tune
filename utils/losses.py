@@ -18,6 +18,18 @@ def get_loss(loss_name):
 
 def get_miner(miner_name, margin=0.1):      # NOTE - 挖掘函数接受一批n个嵌入并返回k对/三元组用于计算损失: Mining functions take a batch of n embeddings and return k pairs/triplets to be used for calculating the loss:
     if miner_name == 'TripletMarginMiner' : return miners.TripletMarginMiner(margin=margin, type_of_triplets="semihard") # all, hard, semihard, easy
+    # NOTE - return (
+    #     anchor_idx[threshold_condition],
+    #     positive_idx[threshold_condition],
+    #     negative_idx[threshold_condition],
+    # )
+    # NOTE - Triplet miners output a tuple of size 3: (anchors, positives, negatives)
+    # 关于hard,semihard的标准可见<https://blog.csdn.net/qq_22815083/article/details/131371900>
     if miner_name == 'MultiSimilarityMiner' : return miners.MultiSimilarityMiner(epsilon=margin, distance=CosineSimilarity())
+    # 该方法来自论文<https://openaccess.thecvf.com/content_CVPR_2019/papers/Wang_Multi-Similarity_Loss_With_General_Pair_Weighting_for_Deep_Metric_Learning_CVPR_2019_paper.pdf>
     if miner_name == 'PairMarginMiner' : return miners.PairMarginMiner(pos_margin=0.7, neg_margin=0.3, distance=DotProductSimilarity())
+    # 返回违反指定边距的正对和负对，这是为了增加模型的通用性。
+    # Pair miners output a tuple of size 4: (anchors, positives, anchors, negatives).
     return None
+
+# def corner_loss():

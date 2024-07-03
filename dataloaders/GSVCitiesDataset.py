@@ -30,7 +30,7 @@ class GSVCitiesDataset(Dataset):
                  transform=default_transform,
                  base_path=BASE_PATH
                  ):
-        super(GSVCitiesDataset, self).__init__()
+        super(GSVCitiesDataset, self).__init__()        # NOTE - Python中的super(Net, self).__init__()是指首先找到Net的父类（比如是类NNet），然后把类Net的对象self转换为类NNet的对象，然后“被转换”的类NNet对象调用自己的init函数，其实简单理解就是子类把父类的__init__()放到自己的__init__()当中，这样子类就有了父类的__init__()的那些东西。
         self.base_path = base_path
         self.cities = cities
 

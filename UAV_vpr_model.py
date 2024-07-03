@@ -6,7 +6,7 @@ import utils
 from models import helper
 
 from GenerateDataset import CITIES, TRAIN_CITIES, VAL_CITIES
-
+from models.homography import DeepLKBatch_edited as DLK
 
 class VPRModel(pl.LightningModule):
     """This is the main model for Visual Place Recognition
@@ -20,7 +20,7 @@ class VPRModel(pl.LightningModule):
         #---- Backbone
         backbone_arch='resnet50',         # NOTE - 原始
         backbone_config={},
-        # backbone_arch='dinov2_vitb14',    # NOTE = 邵星雨
+        # backbone_arch='dinov2_vitb14',    # NOTE  - 邵星雨
         # backbone_config={},
         
         #---- Aggregator
@@ -145,7 +145,7 @@ class VPRModel(pl.LightningModule):
     def loss_function(self, descriptors, labels):
         # we mine the pairs/triplets if there is an online mining strategy
         if self.miner is not None:
-            miner_outputs = self.miner(descriptors, labels)
+            miner_outputs = self.miner(descriptors, labels)     # 这里应该能找到被挖掘的一组样本
             loss = self.loss_fn(descriptors, labels, miner_outputs)
             
             # calculate the % of trivial pairs/triplets 
