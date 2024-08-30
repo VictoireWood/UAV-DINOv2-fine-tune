@@ -36,7 +36,7 @@ class DINOv2(nn.Module):
         self.return_token = return_token
 
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         """
         The forward method for the DINOv2 class
 
@@ -50,7 +50,7 @@ class DINOv2(nn.Module):
 
         B, C, H, W = x.shape
 
-        x = self.model.prepare_tokens_with_masks(x) # NOTE - 这里是不是调用父类的方法？或者是DINOv2自己的方法？
+        x = self.model.prepare_tokens_with_masks(x) # NOTE - 这里是不是调用父类的方法？或者是DINOv2自己的方法？(应该是dinov2的自带方法)
         
         # First blocks are frozen
         with torch.no_grad():
